@@ -42,16 +42,14 @@ const FeedBackForm = () => {
         text,
         rating,
       };
-      addHandler(newFeedBack);
-      setText('');
-      setBtnDisabled(true);
-
       if (feedbackEdit.edit === true) {
         updateFeedback(feedbackEdit.item.id, newFeedBack);
       } else {
         addHandler(newFeedBack);
       }
     }
+    setText('');
+    setBtnDisabled(true);
   };
 
   return (

@@ -1,5 +1,4 @@
-import { createContext, useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import { createContext, useEffect, useState } from 'react';
 
 const FeedbackContext = createContext({
   feedback: {},
@@ -10,63 +9,83 @@ const FeedbackContext = createContext({
 });
 
 export const FeedbackProvider = ({ children }) => {
-  const [feedback, setFeedback] = useState([
-    {
-      id: 1,
-      rating: 10,
-      text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit',
-    },
-    {
-      id: 2,
-      rating: 9,
-      text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit.',
-    },
-    {
-      id: 3,
-      rating: 8,
-      text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit.',
-    },
-    {
-      id: 4,
-      rating: 8,
-      text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit.',
-    },
-  ]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [feedback, setFeedback] = useState([]);
 
   const [feedbackEdit, setFeedbackEdit] = useState({
     item: {},
     edit: false,
   });
 
-  // Add feedback
-  const addHandler = (newFeed) => {
-    newFeed.id = uuidv4();
+  useEffect(() => {
+    fechFeedbackData();
+  }, []);
 
-    setFeedback((prevState) => [newFeed, ...prevState]);
+  // Fetch Feedback
+  const fechFeedbackData = async () => {
+    const res = await fetch('/feedback?_sort=id&_order=desc');
+    const data = await res.json();
+
+    setFeedback(data);
+    setIsLoading(false);
+  };
+
+  // Add feedback
+  const addHandler = async (newFeed) => {
+    const res = await fetch('/feedback', {
+      method: 'POST',
+      body: JSON.stringify(newFeed),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await res.json();
+
+    // Why weird behaviour?
+    // setFeedback((prevState) => [data, ...prevState]);
+
+    setFeedback([data, ...feedback]);
   };
 
   // Delete Feedback
-  const removeHandler = (id) => {
+  const removeHandler = async (id) => {
     if (window.confirm('Are you sure you want to delete?')) {
+      await fetch(`/feedback/${id}`, { method: 'DELETE' });
+
       setFeedback(feedback.filter((item) => item.id !== id));
     }
   };
 
   // Edit Feedback
+
+  const updateFeedback = async (id, upItem) => {
+    const res = await fetch(`/feedback/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'applicaton/json',
+      },
+      body: JSON.stringify(upItem),
+    });
+    console.log(upItem);
+    const data = await res.json();
+
+    setFeedback(feedback.map((item) => (item.id === id ? { ...item, ...data } : item)));
+  };
+
+  // Set item to be updated
   const editFeedback = (item) => {
+    console.log(item);
     setFeedbackEdit({
       item,
       edit: true,
     });
   };
 
-  const updateFeedback = (id, upItem) => {
-    setFeedback(feedback.map((item) => (item.id === id ? { ...item, ...upItem } : item)));
-  };
-
   const feedbackData = {
     feedback,
     feedbackEdit,
+    isLoading,
     addHandler,
     removeHandler,
     editFeedback,
